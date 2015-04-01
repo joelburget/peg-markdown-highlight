@@ -1,9 +1,9 @@
 /* PEG Markdown Highlight
  * Copyright 2011-2013 Ali Rantakari -- http://hasseg.org
  * Licensed under the GPL2+ and MIT licenses (see LICENSE for more info).
- * 
+ *
  * pmh_parser_head.c
- * 
+ *
  * Code to be inserted into the beginning of the parser code generated
  * from the PEG grammar.
  */
@@ -23,7 +23,6 @@
 #define pmh_PRINTF(x, ...)
 #define pmh_PUTCHAR(x)
 #endif
-
 
 
 // Alias strdup to _strdup on MSVC:
@@ -46,20 +45,20 @@ struct pmh_RealElement
     struct pmh_RealElement *next;
     char *label;
     char *address;
-    
+
     // "Private" members for use by the parser itself:
     // -----------------------------------------------
-    
+
     // next element in list of all elements:
     struct pmh_RealElement *all_elems_next;
-    
+
     // offset to text (for elements of type pmh_EXTRA_TEXT, used when the
     // parser reads the value of 'text'):
     int text_offset;
-    
+
     // text content (for elements of type pmh_EXTRA_TEXT):
     char *text;
-    
+
     // children of element (for elements of type pmh_RAW_LIST)
     struct pmh_RealElement *children;
 };
@@ -73,32 +72,32 @@ typedef struct
 {
     /* The original, unmodified UTF-8 input: */
     char *original_input;
-    
+
     /* The offsets of the bytes we have stripped from original_input: */
     unsigned long *strip_positions;
     size_t strip_positions_len;
-    
+
     /* Buffer of characters to be parsed: */
     char *charbuf;
-    
+
     /* Linked list of {start, end} offset pairs determining which parts */
     /* of charbuf to actually parse: */
     pmh_realelement *current_elem;
     pmh_realelement *elem_head;
-    
+
     /* Current parsing offset within charbuf: */
     unsigned long offset;
-    
+
     /* The extensions to use for parsing (bitfield */
     /* of enum pmh_extensions): */
     int extensions;
-    
+
     /* Array of parsing result elements, indexed by type: */
     pmh_realelement **head_elems;
-    
+
     /* Whether we are parsing only references: */
     bool parsing_only_references;
-    
+
     /* List of reference elements: */
     pmh_realelement *references;
 } parser_data;
@@ -184,7 +183,7 @@ static char **get_element_type_names()
 pmh_element_type pmh_element_type_from_name(char *name)
 {
     char **elem_type_names = get_element_type_names();
-    
+
     int i;
     for (i = 0; i < pmh_NUM_LANG_TYPES; i++)
     {
@@ -194,7 +193,7 @@ pmh_element_type pmh_element_type_from_name(char *name)
         if (strcmp(i_name, name) == 0)
             return i;
     }
-    
+
     return pmh_NO_TYPE;
 }
 
@@ -296,27 +295,27 @@ static void process_raw_blocks(parser_data *p_data)
         while (cursor != NULL)
         {
             pmh_realelement *span_list = (pmh_realelement*)cursor->children;
-            
+
             span_list = remove_zero_length_raw_spans(span_list);
-            
+
             #if pmh_DEBUG_OUTPUT
             pmh_PRINTF("  process: ");
             print_raw_spans_inline(span_list);
             pmh_PRINTF("\n");
             #endif
-            
+
             while (span_list != NULL)
             {
                 pmh_PRINTF("next: span_list: %ld-%ld\n",
                            span_list->pos, span_list->end);
-                
+
                 // Skip separators in the beginning, as well as
                 // separators after another separator:
                 if (span_list->type == pmh_SEPARATOR) {
                     span_list = span_list->next;
                     continue;
                 }
-                
+
                 // Store list of spans until next separator in subspan_list:
                 pmh_realelement *subspan_list = span_list;
                 pmh_realelement *previous = NULL;
@@ -328,13 +327,13 @@ static void process_raw_blocks(parser_data *p_data)
                     span_list = span_list->next;
                     previous->next = NULL;
                 }
-                
+
                 #if pmh_DEBUG_OUTPUT
                 pmh_PRINTF("    subspan process: ");
                 print_raw_spans_inline(subspan_list);
                 pmh_PRINTF("\n");
                 #endif
-                
+
                 // Process subspan_list:
                 parser_data *raw_p_data = mk_parser_data(
                     p_data->original_input,
@@ -349,10 +348,10 @@ static void process_raw_blocks(parser_data *p_data)
                 );
                 parse_markdown(raw_p_data);
                 free(raw_p_data);
-                
+
                 pmh_PRINTF("parse over\n");
             }
-            
+
             cursor = cursor->next;
         }
     }
@@ -392,7 +391,7 @@ void pmh_free_elements(pmh_element **elems)
         free(tofree);
     }
     elems[pmh_ALL] = NULL;
-    
+
     free(elems);
 }
 
@@ -437,20 +436,20 @@ static int strcpy_preformat(char *str, char **out,
     unsigned long *strip_positions = (unsigned long *)
                                      calloc(strip_positions_size,
                                             sizeof(unsigned long));
-    
-    
+
+
     // +2 in the following is due to the "\n\n" suffix:
     char *new_str = (char *)malloc(sizeof(char) * strlen(str) + 1 + 2);
     char *c = str;
     int i = 0;
-    
+
     if (HAS_UTF8_BOM(c)) {
         c += 3;
         ADD_STRIP_POS(0);
         ADD_STRIP_POS(1);
         ADD_STRIP_POS(2);
     }
-    
+
     while (*c != '\0')
     {
         if (!IS_CONTINUATION_BYTE(*c)) {
@@ -460,11 +459,11 @@ static int strcpy_preformat(char *str, char **out,
         }
         c++;
     }
-    
+
     *(new_str+(i++)) = '\n';
     *(new_str+(i++)) = '\n';
     *(new_str+i) = '\0';
-    
+
     *out = new_str;
     *out_strip_positions = strip_positions;
     *out_strip_positions_len = strip_positions_pos;
@@ -481,14 +480,14 @@ void pmh_markdown_to_elements(char *text, int extensions,
     size_t strip_positions_len = 0;
     int text_copy_len = strcpy_preformat(text, &text_copy, &strip_positions,
                                          &strip_positions_len);
-    
+
     pmh_realelement *parsing_elem = (pmh_realelement *)
                                     malloc(sizeof(pmh_realelement));
     parsing_elem->type = pmh_RAW;
     parsing_elem->pos = 0;
     parsing_elem->end = text_copy_len;
     parsing_elem->next = NULL;
-    
+
     parser_data *p_data = mk_parser_data(
         text,
         strip_positions,
@@ -501,31 +500,31 @@ void pmh_markdown_to_elements(char *text, int extensions,
         NULL
     );
     pmh_realelement **result = p_data->head_elems;
-    
+
     if (*text_copy != '\0')
     {
         // Get reference definitions into p_data->references
         parse_references(p_data);
-        
+
         // Reset parser state to beginning of input
         p_data->offset = 0;
         p_data->current_elem = p_data->elem_head;
-        
+
         // Parse whole document
         parse_markdown(p_data);
-        
+
         #if pmh_DEBUG_OUTPUT
         print_raw_blocks(text_copy, result);
         #endif
-        
+
         process_raw_blocks(p_data);
     }
-    
+
     free(strip_positions);
     free(p_data);
     free(parsing_elem);
     free(text_copy);
-    
+
     *out_result = (pmh_element**)result;
 }
 
@@ -541,25 +540,25 @@ static pmh_element *ll_mergesort(pmh_element *list,
 {
     if (!list)
         return NULL;
-    
+
     pmh_element *out_head = list;
-    
+
     /* Merge widths of doubling size until done */
     int merge_width = 1;
     while (1)
     {
         pmh_element *l, *r; /* left & right segment pointers */
         pmh_element *tail = NULL; /* tail of sorted section */
-        
+
         l = out_head;
         out_head = NULL;
-        
+
         int merge_count = 0;
-        
+
         while (l)
         {
             merge_count++;
-            
+
             /* Position r, determine lsize & rsize */
             r = l;
             int lsize = 0;
@@ -571,7 +570,7 @@ static pmh_element *ll_mergesort(pmh_element *list,
                     break;
             }
             int rsize = merge_width;
-            
+
             /* Merge l & r */
             while (lsize > 0 || (rsize > 0 && r))
             {
@@ -579,14 +578,14 @@ static pmh_element *ll_mergesort(pmh_element *list,
                 if (lsize == 0)             get_from_left = false;
                 else if (rsize == 0 || !r)  get_from_left = true;
                 else if (compare(l,r) <= 0) get_from_left = true;
-                
+
                 pmh_element *e;
                 if (get_from_left) {
                     e = l; l = l->next; lsize--;
                 } else {
                     e = r; r = r->next; rsize--;
                 }
-                
+
                 /* add the next pmh_element to the merged list */
                 if (tail)
                     tail->next = e;
@@ -594,14 +593,14 @@ static pmh_element *ll_mergesort(pmh_element *list,
                     out_head = e;
                 tail = e;
             }
-            
+
             l = r;
         }
         tail->next = NULL;
-        
+
         if (merge_count <= 1)
             return out_head;
-        
+
         merge_width *= 2;
     }
 }
@@ -636,7 +635,7 @@ static pmh_realelement *get_reference(parser_data *p_data, char *label)
 {
     if (!label)
         return NULL;
-    
+
     pmh_realelement *cursor = p_data->references;
     while (cursor != NULL)
     {
@@ -652,13 +651,13 @@ static pmh_realelement *get_reference(parser_data *p_data, char *label)
 static pmh_realelement *cons(pmh_realelement *elem, pmh_realelement *list)
 {
     assert(elem != NULL);
-    
+
     pmh_realelement *cur = elem;
     while (cur->next != NULL) {
         cur = cur->next;
     }
     cur->next = list;
-    
+
     return elem;
 }
 
@@ -690,13 +689,13 @@ static pmh_realelement *mk_element(parser_data *p_data, pmh_element_type type,
     result->next = NULL;
     result->text_offset = 0;
     result->label = result->address = result->text = NULL;
-    
+
     pmh_realelement *old_all_elements_head = p_data->head_elems[pmh_ALL];
     p_data->head_elems[pmh_ALL] = result;
     result->all_elems_next = old_all_elements_head;
-    
+
     //pmh_PRINTF("  mk_element: %s [%ld - %ld]\n", pmh_element_name_from_type(type), pos, end);
-    
+
     return result;
 }
 
@@ -732,32 +731,32 @@ static pmh_realelement *fix_offsets(parser_data *p_data, pmh_realelement *elem)
 {
     if (elem->type == pmh_EXTRA_TEXT)
         return mk_etext(p_data, elem->text);
-    
+
     pmh_realelement *new_head = copy_element(p_data, elem);
-    
+
     pmh_realelement *tail = new_head;
     pmh_realelement *prev = NULL;
-    
+
     bool found_start = false;
     bool found_end = false;
     bool tail_needs_pos = false;
     unsigned long previous_end = 0;
     unsigned long c = 0;
-    
+
     pmh_realelement *cursor = p_data->elem_head;
     while (cursor != NULL)
     {
         int thislen = (cursor->type == pmh_EXTRA_TEXT)
                         ? strlen(cursor->text)
                         : cursor->end - cursor->pos;
-        
+
         if (tail_needs_pos && cursor->type != pmh_EXTRA_TEXT) {
             tail->pos = cursor->pos;
             tail_needs_pos = false;
         }
-        
+
         unsigned int this_pos = cursor->pos;
-        
+
         if (!found_start && (c <= elem->pos && elem->pos <= c+thislen)) {
             tail->pos = (cursor->type == pmh_EXTRA_TEXT)
                         ? previous_end
@@ -765,20 +764,20 @@ static pmh_realelement *fix_offsets(parser_data *p_data, pmh_realelement *elem)
             this_pos = tail->pos;
             found_start = true;
         }
-        
+
         if (!found_end && (c <= elem->end && elem->end <= c+thislen)) {
             tail->end = (cursor->type == pmh_EXTRA_TEXT)
                         ? previous_end
                         : cursor->pos + (elem->end - c);
             found_end = true;
         }
-        
+
         if (found_start && found_end)
             break;
-        
+
         if (cursor->type != pmh_EXTRA_TEXT)
             previous_end = cursor->end;
-        
+
         if (found_start) {
             pmh_realelement *new_elem = copy_element(p_data, tail);
             new_elem->pos = this_pos;
@@ -791,11 +790,11 @@ static pmh_realelement *fix_offsets(parser_data *p_data, pmh_realelement *elem)
             prev = new_elem;
             tail_needs_pos = true;
         }
-        
+
         c += thislen;
         cursor = cursor->next;
     }
-    
+
     return new_head;
 }
 
@@ -839,7 +838,7 @@ static void add(parser_data *p_data, pmh_realelement *elem)
         }
         pmh_PRINTF("\n");
     }
-    
+
     if (p_data->head_elems[elem->type] == NULL)
         p_data->head_elems[elem->type] = elem;
     else
@@ -861,9 +860,9 @@ static char *copy_input_span(parser_data *p_data,
 {
     if (end <= pos)
         return NULL;
-    
+
     char *ret = NULL;
-    
+
     // Adjust (pos,end) to match actual indexes in charbuf:
     pmh_realelement *dummy = mk_element(p_data, pmh_NO_TYPE, pos, end);
     pmh_realelement *fixed_dummies = fix_offsets(p_data, dummy);
@@ -875,7 +874,7 @@ static char *copy_input_span(parser_data *p_data,
             cursor = cursor->next;
             continue;
         }
-        
+
         // Adjust cursor's span to take bytes stripped from the original
         // input into account (i.e. match the corresponding span in
         // p_data->original_input):
@@ -892,13 +891,13 @@ static char *copy_input_span(parser_data *p_data,
             else
                 break;
         }
-        
+
         // Copy span from original input:
         size_t adjusted_len = adjusted_end - adjusted_pos;
         char *str = (char *)malloc(sizeof(char)*adjusted_len + 1);
         *str = '\0';
         strncat(str, (p_data->original_input + adjusted_pos), adjusted_len);
-        
+
         if (ret == NULL)
             ret = str;
         else
@@ -913,10 +912,10 @@ static char *copy_input_span(parser_data *p_data,
             free(str);
             ret = new_ret;
         }
-        
+
         cursor = cursor->next;
     }
-    
+
     return ret;
 }
 
@@ -940,7 +939,7 @@ static void yy_input_func(char *buf, int *result, int max_size,
         (*result) = 0;
         return;
     }
-    
+
     if (p_data->current_elem->type == pmh_EXTRA_TEXT)
     {
         int yyc;
@@ -964,14 +963,14 @@ static void yy_input_func(char *buf, int *result, int max_size,
         (*result) = (EOF == yyc) ? 0 : (*(buf) = yyc, 1);
         return;
     }
-    
+
     *(buf) = *(p_data->charbuf + p_data->offset);
     (*result) = (*buf != '\0');
     p_data->offset++;
-    
+
     pmh_PRINTF("\e[43;30m"); pmh_PUTCHAR(*buf); pmh_PRINTF("\e[0m");
     pmh_IF(*buf == '\n') pmh_PRINTF("\e[42m \e[0m");
-    
+
     if (p_data->offset >= p_data->current_elem->end)
     {
         p_data->current_elem = p_data->current_elem->next;

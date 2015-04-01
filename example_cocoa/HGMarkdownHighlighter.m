@@ -1,7 +1,7 @@
 /* PEG Markdown Highlight
  * Copyright 2011-2013 Ali Rantakari -- http://hasseg.org
  * Licensed under the GPL2+ and MIT licenses (see LICENSE for more info).
- * 
+ *
  * HGMarkdownHighlighter.m
  */
 
@@ -17,7 +17,7 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 	NSString *errMsg = @(error_message);
 	if (errMsg == nil)
 		NSLog(@"Cannot interpret error message as UTF-8: '%s'", error_message);
-    
+
 	[(__bridge HGMarkdownHighlighter *)context_data
      performSelector:@selector(handleStyleParsingError:)
      withObject:@{kStyleParsingErrorInfoKey_ErrorMessage: errMsg,
@@ -53,17 +53,17 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 {
 	if (!(self = [super init]))
 		return nil;
-	
+
 	_cachedElements = NULL;
 	_currentHighlightText = NULL;
 	_styleDependenciesPending = NO;
 	_styleParsingErrors = [NSMutableArray array];
-	
+
 	_resetTypingAttributes = YES;
 	_parseAndHighlightAutomatically = YES;
 	_waitInterval = 1;
 	_extensions = pmh_EXT_NONE;
-	
+
 	return self;
 }
 
@@ -126,12 +126,12 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
             [surrogatePairIndexes addObject:@(i)];
         i++;
     }
-    
+
     // If the text does not contain any surrogate pairs, we're done (the indexes
     // are already correct):
     if (surrogatePairIndexes.count == 0)
         return;
-    
+
     // Use our list of surrogate pair indexes to shift the indexes of all
     // language elements:
     for (int langType = 0; langType < pmh_NUM_LANG_TYPES; langType++)
@@ -169,15 +169,15 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 - (void) threadParseAndHighlight
 {
 	@autoreleasepool {
-	
+
 		pmh_element **result = [self parse];
     [self convertOffsets:result];
-		
+
 		[self
 		 performSelectorOnMainThread:@selector(parserDidParse:)
 		 withObject:[NSValue valueWithPointer:result]
 		 waitUntilDone:YES];
-	
+
 	}
 }
 
@@ -202,20 +202,20 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 		_workerThreadResultsInvalid = YES;
 		return;
 	}
-	
+
 	self.workerThread = [[NSThread alloc]
 						 initWithTarget:self
 						 selector:@selector(threadParseAndHighlight)
 						 object:nil];
-	
+
 	[[NSNotificationCenter defaultCenter]
 	 addObserver:self
 	 selector:@selector(threadDidExit:)
 	 name:NSThreadWillExitNotification
 	 object:self.workerThread];
-	
+
     _currentHighlightText = [[self.targetTextView string] copy];
-	
+
 	_workerThreadResultsInvalid = NO;
 	[self.workerThread start];
 }
@@ -227,7 +227,7 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 
 - (NSFontTraitMask) getClearFontTraitMask:(NSFontTraitMask)currentFontTraitMask
 {
-	static NSDictionary *oppositeFontTraits = nil;	
+	static NSDictionary *oppositeFontTraits = nil;
 	if (oppositeFontTraits == nil)
 		oppositeFontTraits = @{@(NSUnitalicFontMask): @(NSItalicFontMask),
 							   @(NSItalicFontMask): @(NSUnitalicFontMask),
@@ -248,7 +248,7 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 - (void) clearHighlightingForRange:(NSRange)range
 {
 	NSTextStorage *textStorage = [_targetTextView textStorage];
-	
+
 	[textStorage applyFontTraits:_clearFontTraitMask range:range];
 	[textStorage removeAttribute:NSBackgroundColorAttributeName range:range];
 	[textStorage removeAttribute:NSLinkAttributeName range:range];
@@ -263,9 +263,9 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 	_clearFontTraitMask = [self getClearFontTraitMask:
 	 				 	  [[NSFontManager sharedFontManager]
 	  					   traitsOfFont:[self.targetTextView font]]];
-	
+
 	self.defaultTextColor = [self.targetTextView textColor];
-	
+
 	NSMutableDictionary *typingAttrs = [NSMutableDictionary dictionary];
 	if ([self.targetTextView backgroundColor] != nil)
 		typingAttrs[NSBackgroundColorAttributeName] = [self.targetTextView backgroundColor];
@@ -283,14 +283,14 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 	NSUInteger rangeEnd = NSMaxRange(range);
 	[[self.targetTextView textStorage] beginEditing];
 	[self clearHighlightingForRange:range];
-	
+
 	NSMutableAttributedString *attrStr = [self.targetTextView textStorage];
 	unsigned long sourceLength = [attrStr length];
-	
+
 	for (HGMarkdownHighlightingStyle *style in self.styles)
 	{
 		pmh_element *cursor = elements[style.elementType];
-		
+
 		while (cursor != NULL)
 		{
 			// Ignore (length <= 0) elements (just in case) and
@@ -301,19 +301,19 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 				cursor = cursor->next;
 				continue;
 			}
-			
+
 			// HGMarkdownParser orders elements by pos so we can stop
 			// at the first one that goes over our range
 			if (cursor->pos >= rangeEnd)
 				break;
-			
+
 			unsigned long rangePosLowLimited = MAX(cursor->pos, (unsigned long)0);
 			unsigned long rangePos = MIN(rangePosLowLimited, sourceLength);
 			unsigned long len = cursor->end - cursor->pos;
 			if (rangePos+len > sourceLength)
 				len = sourceLength-rangePos;
 			NSRange hlRange = NSMakeRange(rangePos, len);
-			
+
 			if (self.makeLinksClickable
 				&& (style.elementType == pmh_LINK
 					|| style.elementType == pmh_AUTO_LINK_URL
@@ -330,19 +330,20 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 									range:hlRange];
 				}
 			}
-			
-			for (NSString *attrName in style.attributesToRemove)
-				[attrStr removeAttribute:attrName range:hlRange];
-			
-			[attrStr addAttributes:style.attributesToAdd range:hlRange];
-			
+
+            // XXX(joel) this leads to a segfault. fix!
+			// for (NSString *attrName in style.attributesToRemove)
+			//	[attrStr removeAttribute:attrName range:hlRange];
+
+			// [attrStr addAttributes:style.attributesToAdd range:hlRange];
+
 			if (style.fontTraitsToAdd != 0)
 				[attrStr applyFontTraits:style.fontTraitsToAdd range:hlRange];
-			
+
 			cursor = cursor->next;
 		}
 	}
-	
+
 	[[self.targetTextView textStorage] endEditing];
 }
 
@@ -352,17 +353,17 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
     NSLayoutManager *layoutManager = [self.targetTextView layoutManager];
 	NSRange visibleGlyphRange = [layoutManager glyphRangeForBoundingRect:visibleRect inTextContainer:[self.targetTextView textContainer]];
 	NSRange visibleCharRange = [layoutManager characterRangeForGlyphRange:visibleGlyphRange actualGlyphRange:NULL];
-    
+
 	if (_cachedElements == NULL)
 		return;
-    
+
     @try {
         [self applyHighlighting:_cachedElements withRange:visibleCharRange];
     }
     @catch (NSException *exception) {
         NSLog(@"Exception in -applyHighlighting:withRange: %@", exception);
     }
-    
+
     if (self.resetTypingAttributes)
         [self.targetTextView setTypingAttributes:self.defaultTypingAttributes];
 }
@@ -432,29 +433,32 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 	static NSArray *defaultStyles = nil;
 	if (defaultStyles != nil)
 		return defaultStyles;
-	
-	defaultStyles = @[HG_MKSTYLE(pmh_H1, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, NSBoldFontMask),
-		HG_MKSTYLE(pmh_H2, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, NSBoldFontMask),
-		HG_MKSTYLE(pmh_H3, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, NSBoldFontMask),
-		HG_MKSTYLE(pmh_H4, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, NSBoldFontMask),
-		HG_MKSTYLE(pmh_H5, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, NSBoldFontMask),
-		HG_MKSTYLE(pmh_H6, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, NSBoldFontMask),
-		HG_MKSTYLE(pmh_HRULE, HG_D(HG_DARK_GRAY,HG_FORE, HG_LIGHT_GRAY,HG_BACK), nil, 0),
-		HG_MKSTYLE(pmh_LIST_BULLET, HG_D(HG_DARK(HG_MAGENTA),HG_FORE), nil, 0),
-		HG_MKSTYLE(pmh_LIST_ENUMERATOR, HG_D(HG_DARK(HG_MAGENTA),HG_FORE), nil, 0),
-		HG_MKSTYLE(pmh_LINK, HG_D(HG_DARK(HG_CYAN),HG_FORE, HG_LIGHT(HG_CYAN),HG_BACK), nil, 0),
-		HG_MKSTYLE(pmh_AUTO_LINK_URL, HG_D(HG_DARK(HG_CYAN),HG_FORE, HG_LIGHT(HG_CYAN),HG_BACK), nil, 0),
-		HG_MKSTYLE(pmh_AUTO_LINK_EMAIL, HG_D(HG_DARK(HG_CYAN),HG_FORE, HG_LIGHT(HG_CYAN),HG_BACK), nil, 0),
-		HG_MKSTYLE(pmh_IMAGE, HG_D(HG_DARK(HG_MAGENTA),HG_FORE, HG_LIGHT(HG_MAGENTA),HG_BACK), nil, 0),
-		HG_MKSTYLE(pmh_REFERENCE, HG_D(HG_DIM(HG_RED),HG_FORE), nil, 0),
-		HG_MKSTYLE(pmh_CODE, HG_D(HG_DARK(HG_GREEN),HG_FORE, HG_LIGHT(HG_GREEN),HG_BACK), nil, 0),
-		HG_MKSTYLE(pmh_EMPH, HG_D(HG_DARK(HG_YELLOW),HG_FORE), nil, NSItalicFontMask),
-		HG_MKSTYLE(pmh_STRONG, HG_D(HG_DARK(HG_MAGENTA),HG_FORE), nil, NSBoldFontMask),
-		HG_MKSTYLE(pmh_HTML_ENTITY, HG_D(HG_MED_GRAY,HG_FORE), nil, 0),
-		HG_MKSTYLE(pmh_COMMENT, HG_D(HG_MED_GRAY,HG_FORE), nil, 0),
-		HG_MKSTYLE(pmh_VERBATIM, HG_D(HG_DARK(HG_GREEN),HG_FORE, HG_LIGHT(HG_GREEN),HG_BACK), nil, 0),
-		HG_MKSTYLE(pmh_BLOCKQUOTE, HG_D(HG_DARK(HG_MAGENTA),HG_FORE), HG_A(HG_BACK), NSUnboldFontMask)];
-	
+
+    NSFontTraitMask fontMask = NSFixedPitchFontMask;
+    NSFontTraitMask headerFontMask = NSFixedPitchFontMask | NSBoldFontMask;
+
+	defaultStyles = @[HG_MKSTYLE(pmh_H1, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, headerFontMask),
+		HG_MKSTYLE(pmh_H2, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, headerFontMask),
+		HG_MKSTYLE(pmh_H3, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, headerFontMask),
+		HG_MKSTYLE(pmh_H4, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, headerFontMask),
+		HG_MKSTYLE(pmh_H5, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, headerFontMask),
+		HG_MKSTYLE(pmh_H6, HG_D(HG_DARK(HG_BLUE),HG_FORE, HG_LIGHT(HG_BLUE),HG_BACK), nil, headerFontMask),
+		HG_MKSTYLE(pmh_HRULE, HG_D(HG_DARK_GRAY,HG_FORE, HG_LIGHT_GRAY,HG_BACK), nil, fontMask),
+		HG_MKSTYLE(pmh_LIST_BULLET, HG_D(HG_DARK(HG_MAGENTA),HG_FORE), nil, fontMask),
+		HG_MKSTYLE(pmh_LIST_ENUMERATOR, HG_D(HG_DARK(HG_MAGENTA),HG_FORE), nil, fontMask),
+		HG_MKSTYLE(pmh_LINK, HG_D(HG_DARK(HG_CYAN),HG_FORE, HG_LIGHT(HG_CYAN),HG_BACK), nil, fontMask),
+		HG_MKSTYLE(pmh_AUTO_LINK_URL, HG_D(HG_DARK(HG_CYAN),HG_FORE, HG_LIGHT(HG_CYAN),HG_BACK), nil, fontMask),
+		HG_MKSTYLE(pmh_AUTO_LINK_EMAIL, HG_D(HG_DARK(HG_CYAN),HG_FORE, HG_LIGHT(HG_CYAN),HG_BACK), nil, fontMask),
+		HG_MKSTYLE(pmh_IMAGE, HG_D(HG_DARK(HG_MAGENTA),HG_FORE, HG_LIGHT(HG_MAGENTA),HG_BACK), nil, fontMask),
+		HG_MKSTYLE(pmh_REFERENCE, HG_D(HG_DIM(HG_RED),HG_FORE), nil, fontMask),
+		HG_MKSTYLE(pmh_CODE, HG_D(HG_DARK(HG_GREEN),HG_FORE, HG_LIGHT(HG_GREEN),HG_BACK), nil, fontMask),
+		HG_MKSTYLE(pmh_EMPH, HG_D(HG_DARK(HG_YELLOW),HG_FORE), nil, fontMask | NSItalicFontMask),
+		HG_MKSTYLE(pmh_STRONG, HG_D(HG_DARK(HG_MAGENTA),HG_FORE), nil, fontMask | NSBoldFontMask),
+		HG_MKSTYLE(pmh_HTML_ENTITY, HG_D(HG_MED_GRAY,HG_FORE), nil, fontMask),
+		HG_MKSTYLE(pmh_COMMENT, HG_D(HG_MED_GRAY,HG_FORE), nil, fontMask),
+		HG_MKSTYLE(pmh_VERBATIM, HG_D(HG_DARK(HG_GREEN),HG_FORE, HG_LIGHT(HG_GREEN),HG_BACK), nil, fontMask),
+		HG_MKSTYLE(pmh_BLOCKQUOTE, HG_D(HG_DARK(HG_MAGENTA),HG_FORE), HG_A(HG_BACK), fontMask | NSUnboldFontMask)];
+
 	return defaultStyles;
 }
 
@@ -462,7 +466,7 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 {
 	if (self.targetTextView == nil)
 		return;
-	
+
 	// Set NSTextView link styles to match the styles set for
 	// LINK elements, with the "pointing hand cursor" style added:
 	for (HGMarkdownHighlightingStyle *style in self.styles)
@@ -480,9 +484,9 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 - (void) setStyles:(NSArray *)newStyles
 {
 	NSArray *stylesToApply = (newStyles != nil) ? newStyles : [self getDefaultStyles];
-	
+
 	_styles = [stylesToApply copy];
-	
+
 	if (self.targetTextView != nil)
 		[self applyStyleDependenciesToTargetTextView];
 	else
@@ -517,10 +521,10 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 {
 	if (stylesheet == nil)
 		return;
-	
+
 	char *c_stylesheet = (char *)[stylesheet UTF8String];
 	pmh_style_collection *style_coll = NULL;
-	
+
 	if (errorHandler == nil)
 		style_coll = pmh_parse_styles(c_stylesheet, NULL, NULL);
 	else
@@ -530,13 +534,13 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 		if ([_styleParsingErrors count] > 0)
             errorHandler(_styleParsingErrors);
 	}
-	
+
 	NSFont *baseFont = (self.defaultTypingAttributes)[NSFontAttributeName];
 	if (baseFont == nil)
 		baseFont = [self.targetTextView font];
-	
+
 	NSMutableArray *stylesArr = [NSMutableArray array];
-	
+
 	// Set language element styles
 	int i;
 	for (i = 0; i < pmh_NUM_LANG_TYPES; i++)
@@ -549,14 +553,14 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 											   baseFont:baseFont];
 		[stylesArr addObject:style];
 	}
-	
+
 	self.styles = stylesArr;
-	
+
 	// Set editor styles
 	if (self.targetTextView != nil)
 	{
 		[self clearHighlighting];
-		
+
 		// General editor styles
 		if (style_coll->editor_styles != NULL)
 		{
@@ -575,12 +579,12 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 				cur = cur->next;
 			}
 		}
-		
+
 		// Selection styles
 		if (style_coll->editor_selection_styles != NULL)
 		{
 			NSMutableDictionary *selAttrs = [[self getDefaultSelectedTextAttributes] mutableCopy];
-			
+
 			pmh_style_attribute *cur = style_coll->editor_selection_styles;
 			while (cur != NULL)
 			{
@@ -599,12 +603,12 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 				}
 				cur = cur->next;
 			}
-			
+
 			[self.targetTextView setSelectedTextAttributes:selAttrs];
 		}
 		else
 			[self.targetTextView setSelectedTextAttributes:[self getDefaultSelectedTextAttributes]];
-		
+
 		// Current line styles
 		if (style_coll->editor_current_line_styles != NULL)
 		{
@@ -614,10 +618,10 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 		}
 		else
 			self.currentLineStyle = nil;
-			
+
 		[self readClearTextStylesFromTextView];
 	}
-	
+
 	pmh_free_style_collection(style_coll);
 	[self highlightNow];
 }
@@ -627,9 +631,9 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 {
 	if (_targetTextView == newTextView)
 		return;
-	
+
 	_targetTextView = newTextView;
-	
+
 	if (_targetTextView != nil)
 		[self readClearTextStylesFromTextView];
 }
@@ -648,21 +652,21 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 - (void) activate
 {
 	// todo: throw exception if targetTextView is nil?
-	
+
 	if (self.styles == nil)
 		self.styles = [self getDefaultStyles];
 	if (_styleDependenciesPending)
 		[self applyStyleDependenciesToTargetTextView];
-	
+
 	[self requestParsing];
-	
+
 	if (self.parseAndHighlightAutomatically)
 		[[NSNotificationCenter defaultCenter]
 		 addObserver:self
 		 selector:@selector(textViewTextDidChange:)
 		 name:NSTextDidChangeNotification
 		 object:self.targetTextView];
-	
+
 	NSScrollView *scrollView = [self.targetTextView enclosingScrollView];
 	if (scrollView != nil)
 	{
@@ -674,7 +678,7 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 		 object:[scrollView contentView]
 		 ];
 	}
-	
+
 	self.isActive = YES;
 }
 
@@ -682,25 +686,25 @@ void styleparsing_error_callback(char *error_message, int line_number, void *con
 {
 	if (!self.isActive)
 		return;
-	
+
 	[[NSNotificationCenter defaultCenter]
 	 removeObserver:self
 	 name:NSTextDidChangeNotification
 	 object:self.targetTextView];
-	
+
 	NSScrollView *scrollView = [self.targetTextView enclosingScrollView];
 	if (scrollView != nil)
 	{
 		// let's not change this here... the user may wish to control it
 		//[[scrollView contentView] setPostsBoundsChangedNotifications: NO];
-		
+
 		[[NSNotificationCenter defaultCenter]
 		 removeObserver:self
 		 name:NSViewBoundsDidChangeNotification
 		 object:[scrollView contentView]
 		 ];
 	}
-	
+
 	[self clearElementsCache];
 	self.isActive = NO;
 }

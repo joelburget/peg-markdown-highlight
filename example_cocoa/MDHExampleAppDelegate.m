@@ -1,9 +1,9 @@
 /* PEG Markdown Highlight
  * Copyright 2011-2013 Ali Rantakari -- http://hasseg.org
  * Licensed under the GPL2+ and MIT licenses (see LICENSE for more info).
- * 
+ *
  * MDHExampleAppDelegate.m
- * 
+ *
  * Cocoa example for highlighting a rich text widget.
  */
 
@@ -50,7 +50,7 @@
                  [errorsInfo appendString:str];
                  [errorsInfo appendString:@"\n"];
              }
-             
+
              NSAlert *alert = [NSAlert alertWithMessageText:@"There were some errors when parsing the stylesheet:"
                                               defaultButton:@"Ok"
                                             alternateButton:nil
@@ -67,7 +67,7 @@
 {
 	[stylePopUpButton removeAllItems];
 	[stylePopUpButton addItemWithTitle:@"Default"];
-	
+
 	NSArray *styleFiles = [[NSBundle mainBundle] pathsForResourcesOfType:@"style"
 															 inDirectory:nil];
 	for (NSString *file in styleFiles)
@@ -86,22 +86,22 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 	[self populateStylesPopUpButton];
-    
+
     // Make sure to disable automatic text replacement (and other fancy
     // features) in the second text view; since it won't update automatically,
     // the highlighting will get messed up when the automatic text replacement
     // kicks in and starts messing with the text after the initial
     // highlighting has already been done:
     [self disableFancyFeaturesInTextView:_textView2];
-    
+
     // The first text view should work with automatic text replacement since
     // it updates automatically when the text changes, but unfortunately
     // this will make the highlighted sections "jump" in an ugly way. So
     // let's disable it by default:
     [self disableFancyFeaturesInTextView:_textView1];
-    
+
 	[_textView1 setFont:[NSFont fontWithName:@"courier" size:12]];
-	
+
 	NSString *s = [NSString
 				   stringWithContentsOfFile:[[NSBundle mainBundle]
 											 pathForResource:@"huge"
@@ -110,13 +110,13 @@
 				   error:NULL];
 	[_textView1 insertText:s];
 	[_textView2 insertText:s];
-	
+
 	hl1 = [[HGMarkdownHighlighter alloc] initWithTextView:_textView1
-											 waitInterval:[delaySlider intValue]];
+										 waitInterval:[delaySlider intValue]];
 	hl1.makeLinksClickable = YES;
 	[self styleSelected:self];
 	[hl1 activate];
-	
+
 	hl2 = [[HGMarkdownHighlighter alloc] init];
 	hl2.targetTextView = _textView2;
 	hl2.parseAndHighlightAutomatically = NO;
